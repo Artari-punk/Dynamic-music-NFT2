@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Zones</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background: url('background.gif') no-repeat center center fixed;
+    background-size: cover;
+  }
+  .zone {
+    width: 50%;
+    height: 50%;
+    position: absolute;
+    overflow: hidden;
+  }
+  canvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+  #upper-left { top: 0; left: 0; background-color: rgba(255, 0, 0, 0); }
+  #upper-right { top: 0; right: 0; background-color: rgba(0, 255, 0, 0); }
+  #lower-left { bottom: 0; left: 0; background-color: rgba(0, 0, 255, 0); }
+  #lower-right { bottom: 0; right: 0; background-color: rgba(255, 255, 0, 0); }
+</style>
+</head>
+<body>
+<div id="upper-left" class="zone"><canvas></canvas></div>
+<div id="upper-right" class="zone"><canvas></canvas></div>
+<div id="lower-left" class="zone"><canvas></canvas></div>
+<div id="lower-right" class="zone"><canvas></canvas></div>
+
+<script>
+  const tracks = {
+    "upper-left": "drum.mp3",
+    "upper-right": "guitar.mp3",
+    "lower-left": "vocal.mp3",
+    "lower-right": "bass.mp3",
+  };
+
+  const zones = document.querySelectorAll(".zone");
+
+  function createAudioVisualizer(audio, canvas, audioContext) {
+  const ctx = canvas.getContext("2d");
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 256;
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  const audioSrc = audioContext.createMediaElementSource(audio);
+  audioSrc.connect(analyser);
+  audioSrc.connect(audioContext.destination);
+
+  function renderFrame() {
+    requestAnimationFrame(renderFrame);
+    analyser.getByteFrequencyData(dataArray);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const barWidth = canvas.width / bufferLength;
+    let x = 0;
+
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = dataArray[i] / 2;
+      const y = canvas.height - barHeight;
+      ctx.fillStyle = `rgba(255, 255, 255, ${dataArray[i] / 255})`;
+      ctx.fillRect(x, y, barWidth, barHeight);
+      x += barWidth + 1;
+    }
+  }
+  renderFrame();
+}
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  zones.forEach(zone => {
+    const audio = new Audio(tracks[zone.id]);
+    audio.loop = true;
+    zone.audio = audio;
+
+    const canvas = zone.querySelector("canvas");
+    canvas.width = zone.clientWidth;
+    canvas.height = zone.clientHeight;
+    createAudioVisualizer(audio, canvas, audioContext);
+
+    zone.addEventListener("mouseover", () => {
+      if (!audio.started) {
+        zones.forEach(z => z.audio.play());
+        audio.started = true;
+      }
+    });
+
+    zone.addEventListener("click", () => {
+      zone.audio.muted = !zone.audio.muted;
+    });
+
+    zone.addEventListener("touchstart", (event) => {
+      event.preventDefault();
+      zone.audio.muted = !zone.audio.muted;
+    });
+  });
+</script>
+</body>
+</html>
