@@ -56,16 +56,6 @@
   audioSrc.connect(analyser);
   audioSrc.connect(audioContext.destination);
 
-function createAudioVisualizer(audio, canvas) {
-  const ctx = canvas.getContext("2d");
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 256;
-  const bufferLength = analyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
-  const audioSrc = audioContext.createMediaElementSource(audio);
-  audioSrc.connect(analyser);
-  audioSrc.connect(audioContext.destination);
-
   function renderFrame() {
     requestAnimationFrame(renderFrame);
     analyser.getByteFrequencyData(dataArray);
@@ -82,16 +72,14 @@ function createAudioVisualizer(audio, canvas) {
     }
   }
   renderFrame();
-
-  function startAudioContext() {
-    if (!started) {
-      audioContext.resume();
-      started = true;
-    }
-  }
-
-  document.addEventListener("click", startAudioContext);
-  document.addEventListener("touchstart", startAudioContext);
+  canvas.addEventListener("click", () => {
+    audioContext.resume().then(() => {
+      Object.values(audioSources).forEach((audio) => {
+        audio.play();
+      });
+      canvas.removeEventListener("click", arguments.callee);
+    });
+  });
 }
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   zones.forEach(zone => {
