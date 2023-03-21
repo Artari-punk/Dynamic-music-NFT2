@@ -74,7 +74,8 @@
   renderFrame();
 }
 var audioContext = null;
-function playAudioIfNotStarted() {
+
+  function playAudioIfNotStarted() {
     if (!audioContext) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       zones.forEach(zone => {
@@ -84,12 +85,23 @@ function playAudioIfNotStarted() {
       });
     }
 
-    zones.forEach(zone => {
-      if (!zone.audio.started) {
-        zone.audio.play();
-        zone.audio.started = true;
-      }
-    });
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().then(() => {
+        zones.forEach(zone => {
+          if (!zone.audio.started) {
+            zone.audio.play();
+            zone.audio.started = true;
+          }
+        });
+      });
+    } else {
+      zones.forEach(zone => {
+        if (!zone.audio.started) {
+          zone.audio.play();
+          zone.audio.started = true;
+        }
+      });
+    }
   }
 
   zones.forEach(zone => {
